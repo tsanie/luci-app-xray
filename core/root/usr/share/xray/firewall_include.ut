@@ -7,16 +7,16 @@
     const config = load_config();
     const general = config[filter(keys(config), k => config[k][".type"] == "general")[0]];
     const general_mark = general.mark || 255;
-    const tcp4_enabled = length(general.tcp_balancer_v4 || []) > 0;
-    const udp4_enabled = length(general.udp_balancer_v4 || []) > 0;
-    const tcp6_enabled = length(general.tcp_balancer_v6 || []) > 0;
-    const udp6_enabled = length(general.udp_balancer_v6 || []) > 0;
+    const tcp4_enabled = true;
+    const udp4_enabled = true;
+    const tcp6_enabled = true;
+    const udp6_enabled = true;
     const uids_direct = uniq(general.uids_direct || []);
     const gids_direct = uniq(general.gids_direct || []);
     let wan_bp_ips_no_dns = general.wan_bp_ips || [];
     let wan_fw_ips_no_dns = general.wan_fw_ips || [];
-    push(wan_bp_ips_no_dns, split(general.fast_dns || "223.5.5.5:53", ":")[0]);
-    push(wan_fw_ips_no_dns, split(general.secure_dns || "8.8.8.8:53", ":")[0]);
+    const tp_spec_sm_proxy = uniq(general.lan_fw_mac_proxy || []);
+    const tp_spec_sm_nas = uniq(general.lan_fw_mac_nas || []);
     const wan_bp_ips_v4 = filter(uniq(wan_bp_ips_no_dns), v => index(v, ":") == -1);
     const wan_bp_ips_v6 = filter(uniq(wan_bp_ips_no_dns), v => index(v, ":") != -1);
     const wan_fw_ips_v4 = filter(uniq(wan_fw_ips_no_dns), v => index(v, ":") == -1);
@@ -26,6 +26,8 @@
     const wan_fw_udp_ports = general.wan_fw_udp_ports || [];
     const wan_bp_tcp_ports = general.wan_bp_tcp_ports || [];
     const wan_bp_udp_ports = general.wan_bp_udp_ports || [];
+    const lan_bp_tcp_ports = general.lan_bp_tcp_ports || [];
+    const lan_bp_udp_ports = general.lan_bp_udp_ports || [];
     const counter = function () {
         if (general.fw4_counter == "1") {
             return "counter packets 0 bytes 0";
@@ -41,7 +43,7 @@
         };
         return sprintf("%s", general.firewall_priority);
     }();
-    const fakedns = map(filter(keys(config), k => config[k][".type"] == "fakedns") || [], k => config[k]);
+    const fakedns = [1];
     const manual_tproxy = filter(keys(config), k => config[k][".type"] == "manual_tproxy") || [];
     const manual_tproxy_source_ips = map(manual_tproxy, k => config[k]["source_addr"]) || [];
 
@@ -127,7 +129,7 @@
 
     set tp_spec_dv4_sp {
         type ipv4_addr
-        flags constant,interval
+        flags interval
         elements = { 0.0.0.0/8, 10.0.0.0/8,
                      100.64.0.0/10, 127.0.0.0/8,
                      169.254.0.0/16, 172.16.0.0/12,
@@ -137,7 +139,7 @@
 
     set tp_spec_dv6_sp {
         type ipv6_addr
-        flags constant,interval
+        flags interval
         elements = { ::,
                      ::1,
                      ::ffff:0.0.0.0/96,
@@ -156,7 +158,6 @@
 {% if (length(tp_spec_sm4_bp) > 0): %}
     set tp_spec_sm4_bp {
         type ether_addr
-        flags constant
         elements = { {{ join(", ", tp_spec_sm4_bp) }} }
     }
 {% endif %}
@@ -164,7 +165,6 @@
 {% if (length(tp_spec_sm6_bp) > 0): %}
     set tp_spec_sm6_bp {
         type ether_addr
-        flags constant
         elements = { {{ join(", ", tp_spec_sm6_bp) }} }
     }
 {% endif %}
@@ -172,7 +172,6 @@
 {% if (length(tp_spec_sm4_tp) > 0): %}
     set tp_spec_sm4_tp {
         type ether_addr
-        flags constant
         elements = { {{ join(", ", tp_spec_sm4_tp) }} }
     }
 {% endif %}
@@ -180,7 +179,6 @@
 {% if (length(tp_spec_sm6_tp) > 0): %}
     set tp_spec_sm6_tp {
         type ether_addr
-        flags constant
         elements = { {{ join(", ", tp_spec_sm6_tp) }} }
     }
 {% endif %}
@@ -188,7 +186,6 @@
 {% for (let i in extra_inbound_tcp_v4_map): %}
     set tp_spec_sm4_ft_{{ i }} {
         type ether_addr
-        flags constant
         elements = { {{ join(", ", extra_inbound_tcp_v4_map[i]) }} }
     }
 {% endfor %}
@@ -196,7 +193,6 @@
 {% for (let i in extra_inbound_udp_v4_map): %}
     set tp_spec_sm4_fu_{{ i }} {
         type ether_addr
-        flags constant
         elements = { {{ join(", ", extra_inbound_udp_v4_map[i]) }} }
     }
 {% endfor %}
@@ -204,7 +200,6 @@
 {% for (let i in extra_inbound_tcp_v6_map): %}
     set tp_spec_sm6_ft_{{ i }} {
         type ether_addr
-        flags constant
         elements = { {{ join(", ", extra_inbound_tcp_v6_map[i]) }} }
     }
 {% endfor %}
@@ -212,15 +207,28 @@
 {% for (let i in extra_inbound_udp_v6_map): %}
     set tp_spec_sm6_fu_{{ i }} {
         type ether_addr
-        flags constant
         elements = { {{ join(", ", extra_inbound_udp_v6_map[i]) }} }
     }
 {% endfor %}
 
+    set tp_spec_sm_nas {
+        type ether_addr
+{% if (length(tp_spec_sm_nas) > 0): %}
+        elements = { {{ join(", ", tp_spec_sm_nas) }} }
+{% endif %}
+    }
+
+    set tp_spec_sm_proxy {
+        type ether_addr
+{% if (length(tp_spec_sm_proxy) > 0): %}
+        elements = { {{ join(", ", tp_spec_sm_proxy) }} }
+{% endif %}
+    }
+
 {% if (length(manual_tproxy_source_ips) > 0): %}
     set tp_spec_dv4_mt {
         type ipv4_addr
-        flags constant, interval
+        flags interval
         elements = { {{ join(", ", manual_tproxy_source_ips) }} }
     }
 {% endif %}
@@ -229,7 +237,7 @@
     set tp_spec_dv4_bp {
         type ipv4_addr
         size {{ length(wan_bp_ips_v4) }}
-        flags constant, interval
+        flags interval
         elements = { {{ join(", ", wan_bp_ips_v4)}} }
     }
 {% endif %}
@@ -238,7 +246,7 @@
     set tp_spec_dv6_bp {
         type ipv6_addr
         size {{ length(wan_bp_ips_v6) }}
-        flags constant, interval
+        flags interval
         elements = { {{ join(", ", wan_bp_ips_v6)}} }
     }
 {% endif %}
@@ -247,7 +255,7 @@
     set tp_spec_dv4_fw {
         type ipv4_addr
         size {{ length(wan_fw_ips_v4) }}
-        flags constant, interval
+        flags interval
         elements = { {{ join(", ", wan_fw_ips_v4)}} }
     }
 {% endif %}
@@ -256,7 +264,7 @@
     set tp_spec_dv6_fw {
         type ipv6_addr
         size {{ length(wan_fw_ips_v6) }}
-        flags constant, interval
+        flags interval
         elements = { {{ join(", ", wan_fw_ips_v6)}} }
     }
 {% endif %}
@@ -319,6 +327,10 @@
 
     chain tp_spec_wan_fw {
 {% if (length(fakedns) > 0): %}
+        ip protocol tcp ether saddr @tp_spec_sm_nas ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} tproxy ip to :{{ general.tproxy_port_tcp_fn4 || 1086 }} accept
+        ip protocol udp ether saddr @tp_spec_sm_nas ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} tproxy ip to :{{ general.tproxy_port_udp_fn4 || 1088 }} accept
+        ip6 nexthdr tcp ether saddr @tp_spec_sm_nas ip6 daddr {{ general.pool_v6 || "fc00::/18" }} {{ counter }} tproxy ip6 to :{{ general.tproxy_port_tcp_fn6 || 1087 }} accept
+        ip6 nexthdr udp ether saddr @tp_spec_sm_nas ip6 daddr {{ general.pool_v6 || "fc00::/18" }} {{ counter }} tproxy ip6 to :{{ general.tproxy_port_udp_fn6 || 1089 }} accept
         ip protocol tcp ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} tproxy ip to :{{ general.tproxy_port_tcp_f4 || 1086 }} accept
         ip protocol udp ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} tproxy ip to :{{ general.tproxy_port_udp_f4 || 1088 }} accept
         ip6 nexthdr tcp ip6 daddr {{ general.pool_v6 || "fc00::/18" }} {{ counter }} tproxy ip6 to :{{ general.tproxy_port_tcp_f6 || 1087 }} accept
@@ -497,6 +509,12 @@
 {% endif %}
         ip daddr @tp_spec_dv4_sp {{ counter }} accept
         ip6 daddr @tp_spec_dv6_sp {{ counter }} accept
+    {% if (length(lan_bp_tcp_ports) > 0): %}
+        tcp sport { {{ join(", ", lan_bp_tcp_ports) }} } {{ counter }} accept
+    {% endif %}
+    {% if (length(lan_bp_udp_ports) > 0): %}
+        udp sport { {{ join(", ", lan_bp_udp_ports) }} } {{ counter }} accept
+    {% endif %}
         {{ counter }} goto tp_spec_lan_re
     }
 
@@ -515,8 +533,12 @@
     {% if (length(wan_bp_udp_ports) > 0): %}
         udp dport { {{ join(", ", wan_bp_udp_ports) }} } {{ counter }} accept
     {% endif %}
-        meta l4proto tcp {{ counter }} goto tp_spec_lan_dd
-        meta l4proto udp {{ counter }} goto tp_spec_lan_dd
+    {% if (general.redirect_dns_port == "1"): %}
+        ether saddr @tp_spec_sm_nas tcp dport 53 {{ counter }} goto tp_spec_lan_dd
+        ether saddr @tp_spec_sm_nas udp dport 53 {{ counter }} goto tp_spec_lan_dd
+        ether saddr @tp_spec_sm_proxy tcp dport 53 {{ counter }} goto tp_spec_lan_dd
+        ether saddr @tp_spec_sm_proxy udp dport 53 {{ counter }} goto tp_spec_lan_dd
+    {% endif %}
 {% endif %}
         {{ counter }} accept
     }
