@@ -225,135 +225,6 @@ function get_outbound_description(config, tag) {
     return result;
 }
 
-function get_dns_badge(records, expire) {
-    const now_timestamp = new Date().getTime() / 1000;
-    const expire_badge = E('span', {
-        'class': 'ifacebadge',
-    }, `${_("ttl")}: <strong>${'%d'.format(greater_than_zero(expire - now_timestamp))}s</strong>`);
-
-    switch (records.length) {
-        case 0: {
-            return "<i>empty or expired</i>";
-        }
-        case 1: {
-            return E([], [records[0], " ", expire_badge]);
-        }
-    }
-    return E([], [
-        records[0],
-        ", ... ",
-        E('span', {
-            'class': 'ifacebadge',
-            'data-tooltip': `${records.length} ${_("in cache")} \n${records.join("\n")}`,
-        }, `+<strong>${records.length - 1}</strong>`),
-        " ",
-        expire_badge
-    ]);
-}
-
-function get_dns_cache_by_server(key, value, last_error) {
-    return [
-        E('h4', key),
-        E('div', { 'class': 'cbi-map-descr' }, `${_("Last query failure reason: ")}<code>${last_error}</code>`),
-        E('table', { 'class': 'table' }, [
-            E('tr', { 'class': 'tr table-titles' }, [
-                E('th', { 'class': 'th', 'width': '34%' }, _('Domain Name')),
-                E('th', { 'class': 'th', 'width': '25%' }, _('Values IPv4')),
-                E('th', { 'class': 'th', 'width': '41%' }, _('Values IPv6')),
-            ]),
-            ...Object.entries(value).map((v, index, arr) => E('tr', { 'class': `tr cbi-rowstyle-${index % 2 + 1}` }, [
-                E('td', { 'class': 'td', 'width': '34%' }, v[0]),
-                E('td', { 'class': 'td', 'width': '25%' }, get_dns_badge(v[1]["A"], v[1]["A_expire"])),
-                E('td', { 'class': 'td', 'width': '41%' }, get_dns_badge(v[1]["AAAA"], v[1]["AAAA_expire"])),
-            ]))
-        ])
-    ];
-}
-
-function get_dns_cache(vars) {
-    const dns_cache = Object.entries(vars["dns"]);
-    let result = [];
-    for (const i of dns_cache) {
-        for (const j of get_dns_cache_by_server(i[0], i[1]["cache"], i[1]["last_error"])) {
-            result.push(j);
-        }
-    }
-    return result;
-}
-
-function get_fake_dns_item(value) {
-    return [
-        E('h3', `FakeDNS Pool: ${value["pool"]}`),
-        E('div', { 'class': 'cbi-map-descr' }, `${_("Pool usage")}: ${value["size"]} / ${value["cap"]}; ${value["query_key"]} ${_("domain to fake IP lookups")}, ${value["query_value"]} ${_("fake IP to domain lookups")}`),
-        E('table', { 'class': 'table' }, [
-            E('tr', { 'class': 'tr table-titles' }, [
-                E('th', { 'class': 'th', 'width': '50%' }, _('Domain')),
-                E('th', { 'class': 'th', 'width': '50%' }, _('Value')),
-            ]),
-            ...value["items"].map((v, index, arr) => E('tr', { 'class': `tr cbi-rowstyle-${index % 2 + 1}` }, [
-                E('td', { 'class': 'td', 'width': '50%' }, v["key"]),
-                E('td', { 'class': 'td', 'width': '50%' }, v["value"]),
-            ]))
-        ])
-    ];
-}
-
-function get_fake_dns(vars) {
-    const fake_dns = vars["fake_dns"] || [];
-    let result = [];
-    for (const i of fake_dns) {
-        result.push(...get_fake_dns_item(i));
-    }
-    return result;
-}
-
-function core_table(vars) {
-    const core = vars["core"];
-    if (!core) {
-        return [];
-    }
-    const aesgcm = function () {
-        if (core["system"]["aesgcm"]) {
-            return _("Supported");
-        }
-        return _("Not supported");
-    };
-    return [
-        E('h3', _('Core Information')),
-        E('div', { 'class': 'cbi-map-descr' }, _("Basic information about system and Xray runtime.")),
-        E('table', { 'class': 'table' }, [
-            E('tr', { 'class': 'tr cbi-rowstyle-1' }, [
-                E('td', { 'class': 'td', 'width': '40%' }, _("Version")),
-                E('td', { 'class': 'td' }, `${vars["version"]["version"]} (${vars["version"]["version_statement"][0].split(" ")[5]})`),
-            ]),
-            E('tr', { 'class': 'tr cbi-rowstyle-1' }, [
-                E('td', { 'class': 'td', 'width': '40%' }, _('Total CPU Cores')),
-                E('td', { 'class': 'td' }, core["system"]["numcpu"]),
-            ]),
-            E('tr', { 'class': 'tr cbi-rowstyle-1' }, [
-                E('td', { 'class': 'td', 'width': '40%' }, _('Hardware AES-GCM acceleration')),
-                E('td', { 'class': 'td' }, aesgcm()),
-            ]),
-            E('tr', { 'class': 'tr cbi-rowstyle-1' }, [
-                E('td', { 'class': 'td', 'width': '40%' }, _('Random TLS Fingerprint')),
-                E('td', { 'class': 'td' }, `${vars["random_tls_fingerprint"]["client"]} ${vars["random_tls_fingerprint"]["version"]}`),
-            ]),
-            E('tr', { 'class': 'tr cbi-rowstyle-1' }, [
-                E('td', { 'class': 'td', 'width': '40%' }, _('Uptime')),
-                E('td', { 'class': 'td' }, '%t'.format(core["runtime"]["uptime"])),
-            ]),
-            E('tr', { 'class': 'tr cbi-rowstyle-1' }, [
-                E('td', { 'class': 'td', 'width': '40%' }, _('Goroutines')),
-                E('td', { 'class': 'td' }, `${core["runtime"]["numgos"]}`),
-            ]),
-            E('tr', { 'class': 'tr cbi-rowstyle-1' }, [
-                E('td', { 'class': 'td', 'width': '40%' }, _('Memory Stats')),
-                E('td', { 'class': 'td' }, 'Alloc: %.2mB; HeapSys: %.2mB; StackSys: %.2mB; GC: %d (%d Forced)'.format(vars["memstats"]["Alloc"], vars["memstats"]["HeapSys"], vars["memstats"]["StackSys"], vars["memstats"]["NumGC"], vars["memstats"]["NumForcedGC"])),
-            ]),
-        ])
-    ];
-};
-
 function observatory(vars, config) {
     if (!vars["observatory"]) {
         return [];
@@ -407,38 +278,6 @@ function outbound_stats(vars, config) {
     ];
 };
 
-function balancer_stats(vars, config) {
-    if (!vars["stats"]) {
-        return [];
-    }
-    if (!vars["stats"]["balancer"]) {
-        return [];
-    }
-    return [
-        E('h3', _('Balancer Statistics')),
-        E('div', { 'class': 'cbi-map-descr' }, _("Outbound picks by balancers.")),
-        E('table', { 'class': 'table' }, [
-            E('tr', { 'class': 'tr table-titles' }, [
-                E('th', { 'class': 'th', 'width': '32%' }, _('Balancer')),
-                E('th', { 'class': 'th', 'width': '68%' }, _('Outbound picks')),
-            ]), ...Object.entries(vars["stats"]["balancer"]).map(function (v, index, arr) {
-                const sum = Object.entries(v[1]).map((v1, i1, a1) => v1[1]).reduce((a, b) => a + b, 0);
-                return E('tr', { 'class': `tr cbi-rowstyle-${index % 2 + 1}` }, [
-                    E('td', { 'class': 'td', 'width': '32%' }, v[0]),
-                    E('td', { 'class': 'td', 'width': '68%' }, E([], Object.entries(v[1]).flatMap(function (v1, i1, a1) {
-                        return [
-                            E('span', {
-                                'class': 'ifacebadge',
-                            }, `<strong>${get_outbound_uci_description(config, v1[0])}</strong>: ${v1[1]} (${"%d".format(greater_than_zero(v1[1] * 100 / sum))}%)`),
-                            " "
-                        ];
-                    })))
-                ]);
-            })
-        ])
-    ];
-};
-
 function inbound_stats(vars, config) {
     if (!vars["stats"]) {
         return [];
@@ -460,49 +299,6 @@ function inbound_stats(vars, config) {
                 E('td', { 'class': 'td' }, '%.2mB'.format(v[1]["uplink"])),
             ]))
         ])
-    ];
-};
-
-function dns_server(vars) {
-    if (!vars["stats"]) {
-        return [];
-    }
-    if (!vars["stats"]["dns"]) {
-        return [];
-    }
-    return [
-        E('h3', _('DNS Server and Cache Information')),
-        E('div', { 'class': 'cbi-map-descr' }, _("Xray Local DNS server statistics (queries and cache details).")),
-        E('table', { 'class': 'table' }, [
-            E('tr', { 'class': 'tr table-titles' }, [
-                E('th', { 'class': 'th', 'width': '30%' }, _('Server')),
-                E('th', { 'class': 'th' }, _('Cache size')),
-                E('th', { 'class': 'th' }, _('Cache alloc')),
-                E('th', { 'class': 'th' }, _('Cache cleanup')),
-                E('th', { 'class': 'th' }, _('Cache expire')),
-                E('th', { 'class': 'th' }, _('Cache flush')),
-                E('th', { 'class': 'th' }, _('Cache hits')),
-                E('th', { 'class': 'th' }, _('Cache misses')),
-                E('th', { 'class': 'th' }, _('Query success')),
-                E('th', { 'class': 'th' }, _('Query empty')),
-                E('th', { 'class': 'th' }, _('Query failure')),
-                E('th', { 'class': 'th' }, _('Query timeout')),
-            ]), ...Object.entries(vars["stats"]["dns"]).map((v, index, arr) => E('tr', { 'class': `tr cbi-rowstyle-${index % 2 + 1}` }, [
-                E('td', { 'class': 'td', 'width': '30%' }, v[0]),
-                E('td', { 'class': 'td' }, v[1]["cache_size"] || 0),
-                E('td', { 'class': 'td' }, v[1]["cache_alloc"] || 0),
-                E('td', { 'class': 'td' }, v[1]["cache_cleanup"] || 0),
-                E('td', { 'class': 'td' }, v[1]["cache_expire"] || 0),
-                E('td', { 'class': 'td' }, v[1]["cache_flush"] || 0),
-                E('td', { 'class': 'td' }, v[1]["cache_hits"] || 0),
-                E('td', { 'class': 'td' }, v[1]["cache_misses"] || 0),
-                E('td', { 'class': 'td' }, v[1]["query_success"] || 0),
-                E('td', { 'class': 'td' }, v[1]["query_empty"] || 0),
-                E('td', { 'class': 'td' }, v[1]["query_failure"] || 0),
-                E('td', { 'class': 'td' }, v[1]["query_timeout"] || 0),
-            ]))
-        ]),
-        ...get_dns_cache(vars),
     ];
 };
 
@@ -531,17 +327,9 @@ return view.extend({
             fs.exec_direct("/usr/bin/wget", ["-O", "-", `http://127.0.0.1:${uci.get_first(config, "general", "metrics_server_port") || 18888}/debug/vars`], "json").then(function (vars) {
                 const result = E([], [
                     E('div', {}, [
-                        E('div', { 'class': 'cbi-section', 'data-tab': 'observatory', 'data-tab-title': _('Observatory') }, [
-                            ...core_table(vars),
-                            ...observatory(vars, config),
-                        ]),
-                        E('div', { 'class': 'cbi-section', 'data-tab': 'outbounds', 'data-tab-title': _('Outbounds') }, [
-                            ...outbound_stats(vars, config),
-                            ...balancer_stats(vars, config),
-                        ]),
-                        E('div', { 'class': 'cbi-section', 'data-tab': 'inbounds', 'data-tab-title': _('Inbounds') }, inbound_stats(vars, config)),
-                        E('div', { 'class': 'cbi-section', 'data-tab': 'dns', 'data-tab-title': _('DNS') }, dns_server(vars)),
-                        E('div', { 'class': 'cbi-section', 'data-tab': 'fake_dns', 'data-tab-title': _('FakeDNS') }, get_fake_dns(vars)),
+                        E('div', { 'class': 'cbi-section', 'data-tab': 'observatory', 'data-tab-title': _('Observatory') }, observatory(vars, config)),
+                        E('div', { 'class': 'cbi-section', 'data-tab': 'outbounds', 'data-tab-title': _('Outbounds') }, outbound_stats(vars, config)),
+                        E('div', { 'class': 'cbi-section', 'data-tab': 'inbounds', 'data-tab-title': _('Inbounds') }, inbound_stats(vars, config))
                     ])
                 ]);
                 ui.tabs.initTabGroup(result.lastElementChild.childNodes);
