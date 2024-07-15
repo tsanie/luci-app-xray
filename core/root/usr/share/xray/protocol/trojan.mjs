@@ -1,10 +1,11 @@
 "use strict";
 
-import { stream_settings } from "../common/stream.mjs";
-import { tls_inbound_settings, fallbacks } from "../common/tls.mjs";
+import { port_array, stream_settings } from "../common/stream.mjs";
+import { fallbacks, tls_inbound_settings } from "../common/tls.mjs";
 
 function trojan_inbound_user(k) {
     return {
+        email: k,
         password: k,
     };
 }
@@ -18,13 +19,14 @@ export function trojan_outbound(server, tag) {
             protocol: "trojan",
             tag: tag,
             settings: {
-                servers: [
-                    {
+                servers: map(port_array(server["server_port"]), function (v) {
+                    return {
                         address: server["server"],
-                        port: int(server["server_port"]),
+                        port: v,
+                        email: server["username"],
                         password: server["password"]
-                    }
-                ]
+                    };
+                })
             },
             streamSettings: stream_settings_result
         },

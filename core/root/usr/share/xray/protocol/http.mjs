@@ -2,23 +2,29 @@
 
 import { port_array, stream_settings } from "../common/stream.mjs";
 
-export function shadowsocks_outbound(server, tag) {
-    const stream_settings_object = stream_settings(server, "shadowsocks", tag);
+export function http_outbound(server, tag) {
+    const stream_settings_object = stream_settings(server, "http", tag);
     const stream_settings_result = stream_settings_object["stream_settings"];
     const dialer_proxy = stream_settings_object["dialer_proxy"];
+    let users = null;
+    if (server["username"] && server["password"]) {
+        users = [
+            {
+                user: server["username"],
+                pass: server["password"],
+            }
+        ];
+    }
     return {
         outbound: {
-            protocol: "shadowsocks",
+            protocol: "http",
             tag: tag,
             settings: {
                 servers: map(port_array(server["server_port"]), function (v) {
                     return {
                         address: server["server"],
                         port: v,
-                        email: server["username"],
-                        password: server["password"],
-                        method: server["shadowsocks_security"],
-                        uot: server["shadowsocks_udp_over_tcp"] == '1'
+                        users: users
                     };
                 })
             },

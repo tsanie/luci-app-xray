@@ -5,8 +5,14 @@
 'require uci';
 'require ui';
 'require view';
+'require view.xray.shared as shared';
 
-const variant = "xray_core";
+function bool_translate(v) {
+    if (v === "1") {
+        return _("available");
+    }
+    return _("unavailable");
+}
 
 function greater_than_zero(n) {
     if (n < 0) {
@@ -19,46 +25,46 @@ function get_inbound_uci_description(config, key) {
     const ks = key.split(":");
     switch (ks[0]) {
         case "https_inbound": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>https://0.0.0.0:443</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>https://0.0.0.0:443</strong> }`)]);
         }
         case "http_inbound": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>http://0.0.0.0:${uci.get_first(config, "general", "http_port") || 1081}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>http://0.0.0.0:${uci.get_first(config, "general", "http_port") || 1081}</strong> }`)]);
         }
         case "socks_inbound": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>socks5://0.0.0.0:${uci.get_first(config, "general", "socks_port") || 1080}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>socks5://0.0.0.0:${uci.get_first(config, "general", "socks_port") || 1080}</strong> }`)]);
         }
         case "tproxy_tcp_inbound_v4": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>tproxy_tcp://0.0.0.0:${uci.get_first(config, "general", "tproxy_port_tcp_v4") || 1082}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>tproxy_tcp://0.0.0.0:${uci.get_first(config, "general", "tproxy_port_tcp_v4") || 1082}</strong> }`)]);
         }
         case "tproxy_udp_inbound_v4": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>tproxy_udp://0.0.0.0:${uci.get_first(config, "general", "tproxy_port_udp_v4") || 1084}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>tproxy_udp://0.0.0.0:${uci.get_first(config, "general", "tproxy_port_udp_v4") || 1084}</strong> }`)]);
         }
         case "tproxy_tcp_inbound_v6": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>tproxy_tcp://[::]:${uci.get_first(config, "general", "tproxy_port_tcp_v6") || 1083}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>tproxy_tcp://[::]:${uci.get_first(config, "general", "tproxy_port_tcp_v6") || 1083}</strong> }`)]);
         }
         case "tproxy_udp_inbound_v6": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>tproxy_udp://[::]:${uci.get_first(config, "general", "tproxy_port_udp_v6") || 1085}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>tproxy_udp://[::]:${uci.get_first(config, "general", "tproxy_port_udp_v6") || 1085}</strong> }`)]);
         }
         case "tproxy_tcp_inbound_f4": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>tproxy_tcp://0.0.0.0:${uci.get_first(config, "general", "tproxy_port_tcp_f4") || 1086}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>tproxy_tcp://0.0.0.0:${uci.get_first(config, "general", "tproxy_port_tcp_f4") || 1086}</strong> }`)]);
         }
         case "tproxy_udp_inbound_f4": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>tproxy_udp://0.0.0.0:${uci.get_first(config, "general", "tproxy_port_udp_f4") || 1088}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>tproxy_udp://0.0.0.0:${uci.get_first(config, "general", "tproxy_port_udp_f4") || 1088}</strong> }`)]);
         }
         case "tproxy_tcp_inbound_f6": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>tproxy_tcp://[::]:${uci.get_first(config, "general", "tproxy_port_tcp_f6") || 1087}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>tproxy_tcp://[::]:${uci.get_first(config, "general", "tproxy_port_tcp_f6") || 1087}</strong> }`)]);
         }
         case "tproxy_udp_inbound_f6": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>tproxy_udp://[::]:${uci.get_first(config, "general", "tproxy_port_udp_f6") || 1089}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>tproxy_udp://[::]:${uci.get_first(config, "general", "tproxy_port_udp_f6") || 1089}</strong> }`)]);
         }
         case "metrics": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>http://0.0.0.0:${uci.get_first(config, "general", "metrics_server_port") || 18888}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>http://0.0.0.0:${uci.get_first(config, "general", "metrics_server_port") || 18888}</strong> }`)]);
         }
         case "api": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>grpc://127.0.0.1:8080</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>grpc://127.0.0.1:8080</strong> }`)]);
         }
         case "dns_server_inbound": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>dns://0.0.0.0:${ks[1]}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>dns://0.0.0.0:${ks[1]}</strong> }`)]);
         }
     }
     const uci_key = key.slice(-9);
@@ -68,7 +74,7 @@ function get_inbound_uci_description(config, key) {
     }
     switch (uci_item[".type"]) {
         case "extra_inbound": {
-            return E([], [key, " ", E('span', { 'class': 'ifacebadge' }, `{ listen: <strong>${uci_item["inbound_type"]}://${uci_item["inbound_addr"]}:${uci_item["inbound_port"]}</strong> }`)]);
+            return E([], [key, " ", shared.badge(`{ listen: <strong>${uci_item["inbound_type"]}://${uci_item["inbound_addr"]}:${uci_item["inbound_port"]}</strong> }`)]);
         }
     }
     return key;
@@ -122,57 +128,37 @@ function outbound_first_tag_format(tag_split, first_uci_description) {
         switch (first_tag[0]) {
             case "extra_inbound": {
                 if (tag_split.length < 3) {
-                    result.push(" ", E('span', {
-                        'class': 'ifacebadge',
-                        'data-tooltip': `${first_uci_description}`,
-                    }, `{ listen: <strong>${first_uci_description}</strong> }`));
+                    result.push(" ", shared.badge(`{ listen: <strong>${first_uci_description}</strong> }`));
                 } else {
-                    result.push(" ", E('span', {
-                        'class': 'ifacebadge',
-                        'data-tooltip': `${first_uci_description}`,
-                    }, `{ listen <strong>...</strong> }`));
+                    result.push(" ", shared.badge(`{ listen <strong>...</strong> }`, first_uci_description));
                 }
                 break;
             }
             case "force_forward": {
-                result.push(" ", E('span', {
-                    'class': 'ifacebadge',
-                    'data-tooltip': `${first_uci_description}`,
-                }, `{ force_forward <strong>...</strong> }`));
+                result.push(" ", shared.badge(`{ force_forward <strong>...</strong> }`, first_uci_description));
                 break;
             }
             case "balancer_outbound": {
                 if (tag_split.length < 4) {
-                    result.push(" ", E('span', {
-                        'class': 'ifacebadge',
-                        'data-tooltip': `${first_uci_description}`,
-                    }, `{ balancer_outbound <strong>...</strong> }`));
+                    result.push(" ", shared.badge(`{ balancer_outbound <strong>...</strong> }`, first_uci_description));
                 }
                 break;
             }
             case "fake_dns_tcp":
             case "fake_dns_udp": {
-                result.push(" ", E('span', {
-                    'class': 'ifacebadge',
-                    'data-tooltip': `${first_uci_description}`,
-                }, `{ fake_dns <strong>...</strong> }`));
+                result.push(" ", shared.badge(`{ fake_dns <strong>...</strong> }`, first_uci_description));
+                break;
             }
             case "manual_tproxy": {
                 break;
             }
             default: {
-                result.push(" ", E('span', {
-                    'class': 'ifacebadge',
-                    'data-tooltip': `${first_uci_description}`,
-                }, `{ <strong>...</strong> }`));
+                result.push(" ", shared.badge(`{ <strong>...</strong> }`, first_uci_description));
                 break;
             }
         }
     } else {
-        result.push(" ", E('span', {
-            'class': 'ifacebadge',
-            'data-tooltip': first_tag[0],
-        }, `{ <strong>${first_uci_description}</strong> }`));
+        result.push(" ", shared.badge(`{ <strong>${first_uci_description}</strong> }`, first_tag[0]));
     }
     return result;
 }
@@ -181,79 +167,45 @@ function outbound_middle_tag_format(tag_split, first_uci_description, current_ta
     switch (current_tag[0]) {
         case "extra_inbound": {
             if (tag_split.length < 3) {
-                return E('span', {
-                    'class': 'ifacebadge',
-                    'data-tooltip': `${current_tag[0]}: ${current_uci_description} (${current_tag[1]})`,
-                }, `{ listen: <strong>${current_uci_description}</strong> }`);
+                return shared.badge(`{ listen: <strong>${current_uci_description}</strong> }`, `${current_tag[0]}: ${current_uci_description} (${current_tag[1]})`);
             }
-            return E('span', {
-                'class': 'ifacebadge',
-                'data-tooltip': `${current_tag[0]}: ${current_uci_description} (${current_tag[1]})`,
-            }, `{ listen <strong>...</strong> }`);
+            return shared.badge(`{ listen <strong>...</strong> }`, `${current_tag[0]}: ${current_uci_description} (${current_tag[1]})`);
         }
         case "force_forward": {
-            return E('span', {
-                'class': 'ifacebadge',
-                'data-tooltip': `${current_tag[0]}: ${current_uci_description} (${current_tag[1]})`,
-            }, `{ force_forward <strong>...</strong> }`);
+            return shared.badge(`{ force_forward <strong>...</strong> }`, `${current_tag[0]}: ${current_uci_description} (${current_tag[1]})`);
         }
         case "balancer_outbound": {
             if (tag_split.length < 4) {
-                return E('span', {
-                    'class': 'ifacebadge',
-                    'data-tooltip': `${current_tag[0]}: ${current_uci_description} (${current_tag[1]})`,
-                }, `{ balancer_outbound <strong>...</strong> }`);
+                return shared.badge(`{ balancer_outbound <strong>...</strong> }`, `${current_tag[0]}: ${current_uci_description} (${current_tag[1]})`);
             }
         }
         case "tcp_outbound": {
             if (tag_split.length < 4) {
-                return E('span', {
-                    'class': 'ifacebadge',
-                    'data-tooltip': `${current_tag[0]}`,
-                }, `{ tcp: <strong>${first_uci_description}</strong> }`);
+                return shared.badge(`{ tcp: <strong>${first_uci_description}</strong> }`, current_tag[0]);
             }
-            return E('span', {
-                'class': 'ifacebadge',
-                'data-tooltip': `tcp: ${first_uci_description}`,
-            }, `{ tcp <strong>...</strong> }`);
+            return shared.badge(`{ tcp <strong>...</strong> }`, `tcp: ${first_uci_description}`);
         }
         case "udp_outbound": {
             if (tag_split.length < 4) {
-                return E('span', {
-                    'class': 'ifacebadge',
-                    'data-tooltip': `${current_tag[0]}`,
-                }, `{ udp: <strong>${first_uci_description}</strong> }`);
+                return shared.badge(`{ udp: <strong>${first_uci_description}</strong> }`, current_tag[0]);
             }
-            return E('span', {
-                'class': 'ifacebadge',
-                'data-tooltip': `udp: ${first_uci_description}`,
-            }, `{ udp <strong>...</strong> }`);
+            return shared.badge(`{ udp <strong>...</strong> }`, `udp: ${first_uci_description}`);
         }
         case "fake_dns_tcp":
         case "fake_dns_udp": {
             break;
         }
     }
-    return E('span', {
-        'class': 'ifacebadge',
-        'data-tooltip': `${current_uci_description}`,
-    }, `{ <strong>...</strong> }`);
+    return shared.badge(`{ <strong>...</strong> }`, current_uci_description);
 }
 
 function outbound_last_tag_format(first_uci_description, last_tag, last_uci_description) {
     if (last_tag[0] == "tcp_outbound") {
-        return E('span', {
-            'class': 'ifacebadge',
-        }, `{ tcp: <strong>${first_uci_description}</strong> }`);
+        return shared.badge(`{ tcp: <strong>${first_uci_description}</strong> }`);
     } else if (last_tag[0] == "udp_outbound") {
-        return E('span', {
-            'class': 'ifacebadge',
-        }, `{ udp: <strong>${first_uci_description}</strong> }`);
+        return shared.badge(`{ udp: <strong>${first_uci_description}</strong> }`);
     }
-    return E('span', {
-        'class': 'ifacebadge',
-        'data-tooltip': `${last_tag[1]}`,
-    }, `{ ${last_tag[0]}: <strong>${last_uci_description}</strong> }`);
+    return shared.badge(`{ ${last_tag[0]}: <strong>${last_uci_description}</strong> }`, last_tag[1]);
 }
 
 function get_outbound_description(config, tag) {
@@ -556,17 +508,24 @@ function dns_server(vars) {
 
 return view.extend({
     load: function () {
-        return uci.load(variant);
+        return Promise.all([
+            uci.load(shared.variant),
+            fs.read("/usr/share/xray/version.txt")
+        ]);
     },
 
-    render: function (config) {
-        if (uci.get_first(config, "general", "metrics_server_enable") != "1") {
+    render: function (load_result) {
+        const config = load_result[0];
+        if (uci.get_first(config, "general", "metrics_server_enable") !== "1") {
             return E([], [
                 E('h2', _('Xray (status)')),
                 E('p', { 'class': 'cbi-map-descr' }, _("Xray metrics server not enabled. Enable Xray metrics server to see details."))
             ]);
         }
-        const info = E('p', { 'class': 'cbi-map-descr' }, _("Collecting data. If any error occurs, check if wget is installed correctly."));
+        const version = load_result[1].split(" ");
+        const stats_available = bool_translate(uci.get_first(config, "general", "stats"));
+        const observatory_available = bool_translate(uci.get_first(config, "general", "observatory"));
+        const info = E('p', { 'class': 'cbi-map-descr' }, `${version[0]} Version ${version[1]} (${version[2]}) Built ${new Date(version[3] * 1000).toLocaleString()}. Statistics: ${stats_available}. Observatory: ${observatory_available}.`);
         const detail = E('div', {});
         poll.add(function () {
             fs.exec_direct("/usr/bin/wget", ["-O", "-", `http://127.0.0.1:${uci.get_first(config, "general", "metrics_server_port") || 18888}/debug/vars`], "json").then(function (vars) {
@@ -586,11 +545,6 @@ return view.extend({
                     ])
                 ]);
                 ui.tabs.initTabGroup(result.lastElementChild.childNodes);
-                if (vars["version"]) {
-                    dom.content(info, vars["version"]["version_statement"][0]);
-                } else {
-                    dom.content(info, _("Show some statistics of Xray. If nothing here, enable statistics and / or observatory for Xray."));
-                }
                 dom.content(detail, result);
             });
         });
