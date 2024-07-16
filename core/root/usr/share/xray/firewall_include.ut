@@ -8,17 +8,19 @@
     const config = load_config();
     const general = config[filter(keys(config), k => config[k][".type"] == "general")[0]];
     const general_mark = general.mark || 255;
-    const tcp4_enabled = true;
-    const udp4_enabled = true;
-    const tcp6_enabled = true;
-    const udp6_enabled = true;
+    const tcp4_enabled = length(general.tcp_balancer_v4 || []) > 0;
+    const udp4_enabled = length(general.udp_balancer_v4 || []) > 0;
+    const tcp6_enabled = length(general.tcp_balancer_v6 || []) > 0;
+    const udp6_enabled = length(general.udp_balancer_v6 || []) > 0;
     const uids_direct = uniq(general.uids_direct || []);
     const gids_direct = uniq(general.gids_direct || []);
     let wan_bp_ips_no_dns = general.wan_bp_ips || [];
     let wan_fw_ips_no_dns = general.wan_fw_ips || [];
+    // push(wan_bp_ips_no_dns, split(general.fast_dns || "223.5.5.5:53", ":")[0]);
     for (let i in dns_direct_servers(config)) {
         push(wan_bp_ips_no_dns, i);
     }
+    // push(wan_fw_ips_no_dns, split(general.secure_dns || "8.8.8.8:53", ":")[0]);
     const tp_spec_sm_proxy = uniq(general.lan_fw_mac_proxy || []);
     const tp_spec_sm_nas = uniq(general.lan_fw_mac_nas || []);
     const wan_bp_ips_v4 = filter(uniq(wan_bp_ips_no_dns), v => index(v, ":") == -1);
@@ -47,7 +49,7 @@
         };
         return sprintf("%s", general.firewall_priority);
     }();
-    const fakedns = [1];
+    const fakedns = map(filter(keys(config), k => config[k][".type"] == "fakedns") || [], k => config[k]);
     const manual_tproxy = filter(keys(config), k => config[k][".type"] == "manual_tproxy") || [];
     const manual_tproxy_source_ips = map(manual_tproxy, k => config[k]["source_addr"]) || [];
 
@@ -342,7 +344,6 @@
     }
 
     chain tp_spec_wan_fw {
-{% if (length(fakedns) > 0): %}
         ip protocol tcp ether saddr @tp_spec_sm_nas ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} tproxy ip to :{{ general.tproxy_port_tcp_fn4 || 1086 }} accept
         ip protocol udp ether saddr @tp_spec_sm_nas ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} tproxy ip to :{{ general.tproxy_port_udp_fn4 || 1088 }} accept
         ip6 nexthdr tcp ether saddr @tp_spec_sm_nas ip6 daddr {{ general.pool_v6 || "fc00::/18" }} {{ counter }} tproxy ip6 to :{{ general.tproxy_port_tcp_fn6 || 1087 }} accept
@@ -351,7 +352,6 @@
         ip protocol udp ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} tproxy ip to :{{ general.tproxy_port_udp_f4 || 1088 }} accept
         ip6 nexthdr tcp ip6 daddr {{ general.pool_v6 || "fc00::/18" }} {{ counter }} tproxy ip6 to :{{ general.tproxy_port_tcp_f6 || 1087 }} accept
         ip6 nexthdr udp ip6 daddr {{ general.pool_v6 || "fc00::/18" }} {{ counter }} tproxy ip6 to :{{ general.tproxy_port_udp_f6 || 1089 }} accept
-{% endif %}
 {% if (length(manual_tproxy_source_ips) > 0): %}
         ip protocol tcp ip daddr @tp_spec_dv4_mt {{ counter }} tproxy ip to :{{ general.tproxy_port_tcp_v4 || 1082 }} accept
         ip protocol udp ip daddr @tp_spec_dv4_mt {{ counter }} tproxy ip to :{{ general.tproxy_port_udp_v4 || 1084 }} accept
@@ -489,17 +489,15 @@
         meta mark 0x000000fe {{ counter }} accept comment "Xray non-IP DNS query outbound"
         meta mark {{ sprintf("0x%08x", general_mark) }} {{ counter }} accept comment "Xray specified mark {{ general_mark }} outbound"
         {{ counter }} jump tp_spec_lan_mf
-        #{{ counter }} goto tp_spec_lan_ac
+        # {{ counter }} goto tp_spec_lan_ac
         {{ counter }} accept
     }
 
     chain tp_spec_lan_mf {
-{% if (length(fakedns) > 0): %}
         ip protocol tcp ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} goto tp_spec_lan_fw comment "Xray FakeDNS IPv4 Pool TCP"
         ip protocol udp ip daddr {{ general.pool_v4 || "198.18.0.0/15" }} {{ counter }} goto tp_spec_lan_fw comment "Xray FakeDNS IPv4 Pool UDP"
         ip6 nexthdr tcp ip6 daddr {{ general.pool_v6 || "fc00::/18" }} {{ counter }} goto tp_spec_lan_fw comment "Xray FakeDNS IPv6 Pool TCP"
         ip6 nexthdr udp ip6 daddr {{ general.pool_v6 || "fc00::/18" }} {{ counter }} goto tp_spec_lan_fw comment "Xray FakeDNS IPv6 Pool UDP"
-{% endif %}
 {% if (length(manual_tproxy_source_ips) > 0): %}
         ip protocol tcp ip daddr @tp_spec_dv4_mt {{ counter }} goto tp_spec_lan_fw comment "Xray manual transparent proxy TCP"
         ip protocol udp ip daddr @tp_spec_dv4_mt {{ counter }} goto tp_spec_lan_fw comment "Xray manual transparent proxy UDP"
@@ -569,7 +567,7 @@
 {% if (general.dynamic_direct_udp6 == "1"): %}
         ip6 nexthdr udp ip6 daddr @tp_spec_dv6_du {{ counter }} mark set 0x000000fa goto tp_spec_lan_ct comment "Xray dynamic direct UDP6"
 {% endif %}
-        #ether saddr @tp_spec_sm_nas {{ counter }} goto tp_spec_lan_fw
+        # ether saddr @tp_spec_sm_nas {{ counter }} goto tp_spec_lan_fw
         ether saddr @tp_spec_sm_proxy {{ counter }} goto tp_spec_lan_fw
         {{ counter }} accept
     }
